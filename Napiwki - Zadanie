@@ -1,0 +1,261 @@
+XML:
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="| KALKULATOR NAPIWKÓW |"
+        android:textSize="30sp"
+        android:textStyle="bold"/>
+
+    <Switch
+        android:id="@+id/themeSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dark Mode"
+        android:onClick="toggleTheme"/>
+
+    <EditText
+        android:id="@+id/inputAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="Wprowadź kwotę rachunku"
+        android:inputType="numberDecimal"
+        android:gravity="center"/>
+
+    <CheckBox
+        android:id="@+id/roundUpCheck"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Zaokrąglij w górę"/>
+
+    <Spinner
+        android:id="@+id/tipPercentageSpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:entries="@array/tip_percentages"/>
+
+    <EditText
+        android:id="@+id/customTipInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="Wprowadź % napiwku"
+        android:inputType="number"
+        android:gravity="center"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/tipResultText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/totalResultText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+    <EditText
+        android:id="@+id/peopleCountInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="Ile osób płaci?"
+        android:inputType="number"
+        android:gravity="center"/>
+
+    <TextView
+        android:id="@+id/perPersonResultText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+</LinearLayout>
+
+MAIN:
+
+package com.example.kalkulator_napiwkow;
+
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Switch;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+public class MainActivity extends AppCompatActivity {
+
+    private EditText amountInput, customTipInput, peopleInput;
+    private TextView tipOutput, totalOutput, perPersonOutput;
+    private CheckBox roundUpCheck;
+    private Spinner tipSpinner;
+    private Switch themeSwitch;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        bindViews();
+        applyInsets();
+        setupListeners();
+    }
+
+    private void bindViews() {
+        amountInput = findViewById(R.id.inputAmount);
+        customTipInput = findViewById(R.id.customTipInput);
+        peopleInput = findViewById(R.id.peopleCountInput);
+
+        tipOutput = findViewById(R.id.tipResultText);
+        totalOutput = findViewById(R.id.totalResultText);
+        perPersonOutput = findViewById(R.id.perPersonResultText);
+
+        roundUpCheck = findViewById(R.id.roundUpCheck);
+        tipSpinner = findViewById(R.id.tipPercentageSpinner);
+        themeSwitch = findViewById(R.id.themeSwitch);
+    }
+
+    private void applyInsets() {
+        View root = findViewById(R.id.rootLayout);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+    }
+
+    private void setupListeners() {
+        amountInput.addTextChangedListener(new AutoCalcWatcher());
+        customTipInput.addTextChangedListener(new AutoCalcWatcher());
+        peopleInput.addTextChangedListener(new AutoCalcWatcher());
+
+        roundUpCheck.setOnClickListener(v -> calculate());
+        themeSwitch.setOnClickListener(this::toggleTheme);
+
+        tipSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                customTipInput.setVisibility(position == 3 ? View.VISIBLE : View.GONE);
+                calculate();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    public void toggleTheme(View view) {
+        View root = findViewById(R.id.rootLayout);
+        int bgColor = themeSwitch.isChecked() ? Color.DKGRAY : Color.WHITE;
+        int txtColor = themeSwitch.isChecked() ? Color.WHITE : Color.BLACK;
+
+        root.setBackgroundColor(bgColor);
+
+        amountInput.setTextColor(txtColor);
+        customTipInput.setTextColor(txtColor);
+        peopleInput.setTextColor(txtColor);
+
+        tipOutput.setTextColor(txtColor);
+        totalOutput.setTextColor(txtColor);
+        perPersonOutput.setTextColor(txtColor);
+        roundUpCheck.setTextColor(txtColor);
+    }
+
+    private void calculate() {
+        String amountText = amountInput.getText().toString();
+        if (amountText.isEmpty()) { clearResults(); return; }
+
+        double amount = Double.parseDouble(amountText);
+        double tip = computeTip(amount);
+        double total = amount + tip;
+
+        tipOutput.setText("Obecny napiwek to: " + String.format("%.2f", tip) + " zł");
+        totalOutput.setText("Całkowita cena z napiwkiem to: " + String.format("%.2f", total) + " zł");
+
+        computePerPerson(total);
+    }
+
+    private double computeTip(double amount) {
+        int selected = tipSpinner.getSelectedItemPosition();
+        double tip = 0;
+
+        switch (selected) {
+            case 0 -> tip = amount * 0.15;
+            case 1 -> tip = amount * 0.20;
+            case 2 -> tip = amount * 0.25;
+            case 3 -> {
+                String customText = customTipInput.getText().toString();
+                if (!customText.isEmpty()) tip = amount * (Double.parseDouble(customText) / 100.0);
+            }
+        }
+
+        if (roundUpCheck.isChecked()) tip = Math.ceil(tip);
+        return tip;
+    }
+
+    private void computePerPerson(double total) {
+        String peopleText = peopleInput.getText().toString();
+        if (peopleText.isEmpty()) { perPersonOutput.setText(""); return; }
+
+        int people = Integer.parseInt(peopleText);
+        if (people <= 0) {
+            Toast.makeText(this, "Niepoprawna ilość osób", Toast.LENGTH_SHORT).show();
+            perPersonOutput.setText("");
+            return;
+        }
+
+        double perPerson = total / people;
+        perPersonOutput.setText("Cena za osobę wynosi: " + String.format("%.2f", perPerson) + " zł");
+    }
+
+    private void clearResults() {
+        tipOutput.setText("");
+        totalOutput.setText("");
+        perPersonOutput.setText("");
+        Toast.makeText(this, "Niepoprawna kwota", Toast.LENGTH_SHORT).show();
+    }
+
+    private class AutoCalcWatcher implements android.text.TextWatcher {
+        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        @Override public void onTextChanged(CharSequence s, int start, int before, int count) { calculate(); }
+        @Override public void afterTextChanged(android.text.Editable s) {}
+    }
+}
+
+
+STRINGS:
+
+<resources>
+    <string name="app_name">TipCalculator</string>
+    <string-array name="tip_percentages">
+        <item>15%</item>
+        <item>20%</item>
+        <item>25%</item>
+        <item>Własny</item>
+    </string-array>
+</resources>
+
+
