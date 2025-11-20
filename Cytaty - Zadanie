@@ -1,0 +1,102 @@
+XML:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layoutGlowny"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/poleCytatu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/poleAutora"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:textStyle="bold"/>
+
+    <Button
+        android:id="@+id/buttonLosujCytat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Losuj kolejny cytat"/>
+
+</LinearLayout>
+
+MAIN:
+package com.example.generatorcytatow;
+
+import android.os.Bundle;
+import android.widget.Button;
+import android.widget.TextView;
+
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+import java.util.ArrayList;
+import java.util.Random;
+
+public class MainActivity extends AppCompatActivity {
+    private ArrayList<Cytat> bazaCytatow = new ArrayList<>();
+    private Random losownik = new Random();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.layoutGlowny), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+
+        przygotujListe();
+
+        TextView poleCytatu = findViewById(R.id.poleCytatu);
+        TextView poleAutora = findViewById(R.id.poleAutora);
+        Button przyciskLosuj = findViewById(R.id.buttonLosujCytat);
+
+        przyciskLosuj.setOnClickListener(v -> {
+            if (!bazaCytatow.isEmpty()) {
+                int indeks = losownik.nextInt(bazaCytatow.size());
+                Cytat wybrany = bazaCytatow.get(indeks);
+                poleCytatu.setText(wybrany.trescCytatu);
+                poleAutora.setText(wybrany.nazwaAutora);
+            }
+        });
+    }
+
+    private void przygotujListe() {
+        bazaCytatow.add(new Cytat("Być albo nie być, oto jest pytanie.", "William Szekspir"));
+        bazaCytatow.add(new Cytat("Wiem, że nic nie wiem.", "Sokrates"));
+        bazaCytatow.add(new Cytat("Myślę, więc jestem.", "Kartezjusz"));
+    }
+}
+
+CYTAT.JAVA:
+package com.example.generatorcytatow;
+
+public class Cytat {
+    String trescCytatu;
+    String nazwaAutora;
+
+    public Cytat(String trescCytatu, String nazwaAutora) {
+        this.trescCytatu = trescCytatu;
+        this.nazwaAutora = nazwaAutora;
+    }
+}
+
