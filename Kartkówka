@@ -1,0 +1,179 @@
+Zadanie 1.
+XML:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <CheckBox
+        android:id="@+id/checkboxWarunki"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Akceptuję warunki" />
+
+    <Button
+        android:id="@+id/buttonDalej"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dalej"
+        android:onClick="sprawdzWarunek"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>
+MAIN:
+public void sprawdzWarunek(View view) {
+    // 1. Pobierz referencję do CheckBox
+    CheckBox check = findViewById(R.id.checkboxWarunki);
+
+    // 2. Sprawdź, czy jest zaznaczony
+    if (check.isChecked()) {
+        Toast.makeText(this, "Możesz przejść dalej.", Toast.LENGTH_SHORT).show();
+    } else {
+        Toast.makeText(this, "Musisz zaakceptować warunki, aby kontynuować.", Toast.LENGTH_SHORT).show();
+    }
+}
+Zadanie 2.
+XML:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wybierz metodę dostawy:"
+        android:textSize="18sp"
+        android:layout_marginBottom="12dp" />
+
+    <RadioGroup
+        android:id="@+id/radioGroupDostawa"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/radio_poczta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Poczta" />
+
+        <RadioButton
+            android:id="@+id/radio_kurier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Kurier" />
+
+        <RadioButton
+            android:id="@+id/radio_osobisty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Odbiór osobisty" />
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/buttonZatwierdz"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Zatwierdź"
+        android:layout_marginTop="16dp"
+        android:onClick="zatwierdzDostawe" />
+
+    <TextView
+        android:id="@+id/tekstWynik"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="16sp"
+        android:layout_marginTop="20dp" />
+
+</LinearLayout>
+MAIN:
+public void zatwierdzDostawe(View view) {
+
+    // 1. Pobranie referencji do RadioGroup
+    RadioGroup radioGroup = findViewById(R.id.radioGroupDostawa);
+
+    // 2. Pobranie ID zaznaczonego RadioButtona
+    int selectedId = radioGroup.getCheckedRadioButtonId();
+
+    // 3. Przygotowanie pola tekstowego do wyświetlenia wyniku
+    TextView wynik = findViewById(R.id.tekstWynik);
+
+    // 4. Sprawdzenie, która opcja została wybrana
+    if (selectedId == R.id.radio_poczta) {
+        wynik.setText("Wybrana metoda dostawy: Poczta");
+
+    } else if (selectedId == R.id.radio_kurier) {
+        wynik.setText("Wybrana metoda dostawy: Kurier");
+
+    } else if (selectedId == R.id.radio_osobisty) {
+        wynik.setText("Wybrana metoda dostawy: Odbiór osobisty");
+
+    } else {
+        wynik.setText("Nie wybrano żadnej metody dostawy!");
+    }
+}
+
+Zadanie 3:
+XML:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wpisz komendę:"
+        android:textSize="18sp"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/poleKomenda"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="np. Info, reset"
+        android:inputType="text" />
+
+    <Button
+        android:id="@+id/buttonWykonaj"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wykonaj"
+        android:layout_marginTop="16dp"
+        android:onClick="wykonajKomende" />
+
+</LinearLayout>
+MAIN:
+public void wykonajKomende(View view) {
+
+    // 1. Pobieramy pole tekstowe
+    EditText pole = findViewById(R.id.poleKomenda);
+
+    // 2. Odczytujemy wpisany tekst
+    String komenda = pole.getText().toString();
+
+    // 3. Użycie switch-case do wykonania akcji
+    switch (komenda) {
+
+        case "Info":
+            Toast.makeText(this, "Wersja aplikacji 1.0", Toast.LENGTH_SHORT).show();
+            break;
+
+        case "reset":
+            Toast.makeText(this, "Resetowanie ustawień...", Toast.LENGTH_SHORT).show();
+            break;
+
+        default:
+            Toast.makeText(this, "Nieznana komenda", Toast.LENGTH_SHORT).show();
+            break;
+    }
+}
+
