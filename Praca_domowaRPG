@@ -1,0 +1,359 @@
+XML:
+Jasne — poniżej masz pełny, przerobiony kod, w którym zmieniłem:
+
+✔ nazwy zmiennych
+✔ id widoków
+✔ nazwy klas / metod
+✔ nazwy stylów
+✔ nazwy elementów w XML
+✔ nazwy tablic i stringów
+
+⚠ Działanie aplikacji pozostaje takie samo.
+
+
+---
+
+✅ NOWE ID, NAZWY I KOD
+
+
+---
+
+📌 activity_main.xml (zmienione ID + style)
+
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            style="@style/TytulSekcji"
+            android:text="Imię postaci:" />
+
+        <EditText
+            android:id="@+id/inputName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            style="@style/TytulSekcji"
+            android:text="Płeć:" />
+
+        <RadioGroup
+            android:id="@+id/groupGender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                style="@style/StyRB"
+                android:text="Mężczyzna" />
+
+            <RadioButton
+                style="@style/StyRB"
+                android:text="Kobieta" />
+        </RadioGroup>
+
+        <TextView
+            style="@style/TytulSekcji"
+            android:text="Rasa:" />
+
+        <Spinner
+            android:id="@+id/spinnerRace"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            style="@style/TytulSekcji"
+            android:text="Umiejętności:" />
+
+        <CheckBox
+            android:id="@+id/chkFight"
+            style="@style/StyCB"
+            android:text="Walka" />
+
+        <CheckBox
+            android:id="@+id/chkMagic"
+            style="@style/StyCB"
+            android:text="Magia" />
+
+        <CheckBox
+            android:id="@+id/chkSteal"
+            style="@style/StyCB"
+            android:text="Kradzież" />
+
+        <Button
+            android:id="@+id/btnCreate"
+            style="@style/MainBtn"
+            android:text="Generuj postać" />
+
+        <Button
+            android:id="@+id/btnClear"
+            style="@style/MainBtn"
+            android:text="Wyczyść" />
+
+        <TextView
+            android:id="@+id/tvTeamSize"
+            android:text="W drużynie: 0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="12dp" />
+
+        <TextView
+            android:id="@+id/tvSummary"
+            android:text=""
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"/>
+    </LinearLayout>
+
+</ScrollView>
+
+
+---
+
+📌 MainActivity.java (zmienione nazwy)
+
+package com.example.kreatorpostaci;
+
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.*;
+import java.util.ArrayList;
+
+public class MainActivity extends AppCompatActivity {
+
+    private EditText inputName;
+    private RadioGroup groupGender;
+    private Spinner spinnerRace;
+
+    private CheckBox chkFight, chkMagic, chkSteal;
+    private Button btnCreate, btnClear;
+    private TextView tvSummary, tvTeamSize;
+
+    private ArrayList<Hero> team = new ArrayList<>();
+    private int maxSkills = 2;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        inputName = findViewById(R.id.inputName);
+        groupGender = findViewById(R.id.groupGender);
+        spinnerRace = findViewById(R.id.spinnerRace);
+
+        chkFight = findViewById(R.id.chkFight);
+        chkMagic = findViewById(R.id.chkMagic);
+        chkSteal = findViewById(R.id.chkSteal);
+
+        btnCreate = findViewById(R.id.btnCreate);
+        btnClear = findViewById(R.id.btnClear);
+
+        tvSummary = findViewById(R.id.tvSummary);
+        tvTeamSize = findViewById(R.id.tvTeamSize);
+
+        // Spinner adapter
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.race_list,
+                android.R.layout.simple_spinner_item
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerRace.setAdapter(adapter);
+
+        // skills limit
+        View.OnClickListener skillLimiter = v -> {
+            int selected =
+                    (chkFight.isChecked() ? 1 : 0) +
+                            (chkMagic.isChecked() ? 1 : 0) +
+                            (chkSteal.isChecked() ? 1 : 0);
+
+            if (selected > maxSkills) {
+                ((CheckBox)v).setChecked(false);
+                Toast.makeText(this, "Maksymalnie 2 umiejętności!", Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        chkFight.setOnClickListener(skillLimiter);
+        chkMagic.setOnClickListener(skillLimiter);
+        chkSteal.setOnClickListener(skillLimiter);
+
+        btnCreate.setOnClickListener(v -> createHero());
+        btnClear.setOnClickListener(v -> clearFields());
+    }
+
+    private void createHero() {
+        String name = inputName.getText().toString();
+        if (name.isEmpty()) {
+            inputName.setError("Wpisz imię!");
+            return;
+        }
+
+        int genderId = groupGender.getCheckedRadioButtonId();
+        if (genderId == -1) {
+            Toast.makeText(this, "Wybierz płeć!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        RadioButton rb = findViewById(genderId);
+        String gender = rb.getText().toString();
+
+        String race = spinnerRace.getSelectedItem().toString();
+
+        ArrayList<String> skills = new ArrayList<>();
+        if (chkFight.isChecked()) skills.add("Walka");
+        if (chkMagic.isChecked()) skills.add("Magia");
+        if (chkSteal.isChecked()) skills.add("Kradzież");
+
+        Hero h = new Hero(name, gender, race, skills);
+        tvSummary.setText(h.generateInfo());
+
+        team.add(h);
+        tvTeamSize.setText("W drużynie: " + team.size());
+    }
+
+    private void clearFields() {
+        inputName.setText("");
+        groupGender.clearCheck();
+        spinnerRace.setSelection(0);
+
+        chkFight.setChecked(false);
+        chkMagic.setChecked(false);
+        chkSteal.setChecked(false);
+
+        tvSummary.setText("");
+    }
+}
+
+
+---
+
+📌 Hero.java (dawniej Postac.java — zmienione nazwy)
+
+package com.example.kreatorpostaci;
+
+import java.util.ArrayList;
+
+public class Hero {
+
+    private String name;
+    private String gender;
+    private String race;
+    private ArrayList<String> skills;
+    private int strength;
+    private int agility;
+
+    public Hero(String name, String gender, String race, ArrayList<String> skills) {
+        this.name = name;
+        this.gender = gender;
+        this.race = race;
+        this.skills = skills;
+
+        setStats();
+    }
+
+    private void setStats() {
+        switch (race) {
+            case "Krasnolud":
+                strength = 12;
+                agility = 8;
+                break;
+            case "Elf":
+                strength = 8;
+                agility = 12;
+                break;
+            case "Ork":
+                strength = 13;
+                agility = 7;
+                break;
+            default:
+                strength = 10;
+                agility = 10;
+                break;
+        }
+    }
+
+    public String generateInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Imię: ").append(name).append("\n");
+        sb.append("Płeć: ").append(gender).append("\n");
+        sb.append("Rasa: ").append(race).append("\n");
+        sb.append("Statystyki:\n");
+        sb.append("• Siła: ").append(strength).append("\n");
+        sb.append("• Zręczność: ").append(agility).append("\n");
+        sb.append("Umiejętności:\n");
+        if (skills.isEmpty()) sb.append("Brak\n");
+        else {
+            for (String s : skills) sb.append("• ").append(s).append("\n");
+        }
+        return sb.toString();
+    }
+}
+
+
+---
+
+📌 strings.xml (nowe nazwy)
+
+<resources>
+    <string name="app_name">GeneratorPostaci</string>
+
+    <string-array name="race_list">
+        <item>Człowiek</item>
+        <item>Elf</item>
+        <item>Krasnolud</item>
+        <item>Ork</item>
+    </string-array>
+</resources>
+
+
+---
+
+📌 themes.xml (zmienione style)
+
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="TytulSekcji">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:paddingTop">16dp</item>
+    </style>
+
+    <style name="StyRB">
+        <item name="android:textSize">18sp</item>
+        <item name="android:padding">4dp</item>
+    </style>
+
+    <style name="StyCB">
+        <item name="android:textSize">18sp</item>
+        <item name="android:padding">4dp</item>
+    </style>
+
+    <style name="MainBtn">
+        <item name="android:textSize">20sp</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:layout_marginTop">10dp</item>
+    </style>
+
+</resources>
+
+
+---
+
+🔥 GOTOWE!
+
+Kod jest poprawnie zmieniony, nazwy są inne, a funkcjonalność pozostała identyczna.
+
+Jeśli chcesz, mogę też:
+
+✅ dodać zapis drużyny do pliku
+✅ dodać RecyclerView z listą postaci
+✅ dodać losowanie statystyk
+✅ przerobić UI na Material Design 3
+
+Wystarczy powiedzieć!
