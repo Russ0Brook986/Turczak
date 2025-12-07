@@ -1,0 +1,444 @@
+XML:
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fillViewport="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:id="@+id/rootLayout"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/tekstNumerPytania"
+            style="@style/Quiz.HeaderSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pytanie 1/5" />
+
+        <TextView
+            android:id="@+id/tekstTrescPytania"
+            style="@style/Quiz.Question"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Treść pytania"
+            android:layout_marginTop="8dp" />
+
+        <!-- Kontener na odpowiedzi (RadioGroup lub dynamiczne CheckBoxy) -->
+        <LinearLayout
+            android:id="@+id/containerOdpowiedzi"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" />
+
+        <TextView
+            android:id="@+id/tekstWynik"
+            style="@style/Quiz.Result"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wynik: 0"
+            android:layout_marginTop="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="12dp">
+
+            <Button
+                android:id="@+id/przyciskSprawdz"
+                style="@style/Quiz.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sprawdź odpowiedź" />
+        </LinearLayout>
+
+        <!-- Ekran końcowy: ukrywany, pojawia się pod koniec -->
+        <LinearLayout
+            android:id="@+id/ekranKoncowy"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="16dp">
+
+            <TextView
+                android:id="@+id/tekstKoniec"
+                style="@style/Quiz.Question"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Koniec quizu!" />
+
+            <Button
+                android:id="@+id/przyciskZagrajPonownie"
+                style="@style/Quiz.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Zagraj ponownie" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
+
+MAIN:
+package com.example.prostyquiz; // <- dopasuj do Twojego pakietu
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.graphics.Color;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+
+public class MainActivity extends AppCompatActivity {
+
+    private ArrayList<Pytanie> listaPytan;
+    private int aktualnyIndeksPytania = 0;
+    private int wynik = 0;
+
+    private TextView tekstNumerPytania;
+    private TextView tekstTrescPytania;
+    private LinearLayout containerOdpowiedzi;
+    private TextView tekstWynik;
+    private Button przyciskSprawdz;
+    private LinearLayout ekranKoncowy;
+    private TextView tekstKoniec;
+    private Button przyciskZagrajPonownie;
+
+    // Obiekty aktualnie wyświetlane (aby móc je czyścić/resetować)
+    private RadioGroup aktualnyRadioGroup;
+    private ArrayList<CheckBox> aktualneCheckBoxy = new ArrayList<>();
+
+    private final long DELAY_MILLIS = 1200; // opóźnienie przed przejściem do następnego pytania (ms)
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        tekstNumerPytania = findViewById(R.id.tekstNumerPytania);
+        tekstTrescPytania = findViewById(R.id.tekstTrescPytania);
+        containerOdpowiedzi = findViewById(R.id.containerOdpowiedzi);
+        tekstWynik = findViewById(R.id.tekstWynik);
+        przyciskSprawdz = findViewById(R.id.przyciskSprawdz);
+        ekranKoncowy = findViewById(R.id.ekranKoncowy);
+        tekstKoniec = findViewById(R.id.tekstKoniec);
+        przyciskZagrajPonownie = findViewById(R.id.przyciskZagrajPonownie);
+
+        przygotujPytania();
+        wyswietlPytanie();
+
+        przyciskSprawdz.setOnClickListener(v -> {
+            Pytanie p = listaPytan.get(aktualnyIndeksPytania);
+            if (p.isCzyWielokrotny()) {
+                sprawdzOdpowiedzWielokrotna(p);
+            } else {
+                sprawdzOdpowiedzJednokrotna(p);
+            }
+        });
+
+        przyciskZagrajPonownie.setOnClickListener(v -> {
+            zresetujGrę();
+        });
+    }
+
+    private void przygotujPytania() {
+        listaPytan = new ArrayList<>();
+
+        // Przykład 1: pytanie jednozaznaczalne
+        ArrayList<String> odp1 = new ArrayList<>();
+        odp1.add("Mars");
+        odp1.add("Wenus");
+        odp1.add("Ziemia");
+        ArrayList<Integer> ind1 = new ArrayList<>();
+        ind1.add(2); // Ziemia
+        listaPytan.add(new Pytanie("Która planeta jest trzecia od Słońca?", odp1, ind1, false));
+
+        // Przykład 2: pytanie wielokrotnego wyboru
+        ArrayList<String> odp2 = new ArrayList<>();
+        odp2.add("Java");
+        odp2.add("Python");
+        odp2.add("HTML");
+        odp2.add("C++");
+        ArrayList<Integer> ind2 = new ArrayList<>();
+        ind2.add(0); // Java
+        ind2.add(1); // Python
+        ind2.add(3); // C++
+        // HTML (indeks 2) NIE jest językiem programowania w tradycyjnym sensie
+        listaPytan.add(new Pytanie("Które z poniższych to języki programowania?", odp2, ind2, true));
+
+        // Przykład 3: kolejne pytanie jednozaznaczalne
+        ArrayList<String> odp3 = new ArrayList<>();
+        odp3.add("Albert Einstein");
+        odp3.add("Isaac Newton");
+        odp3.add("Galileo Galilei");
+        ArrayList<Integer> ind3 = new ArrayList<>();
+        ind3.add(1); // Newton
+        listaPytan.add(new Pytanie("Kto sformułował prawo powszechnego ciążenia?", odp3, ind3, false));
+
+        // Przykład 4: jednozaznaczalne
+        ArrayList<String> odp4 = new ArrayList<>();
+        odp4.add("3.14");
+        odp4.add("2.71");
+        odp4.add("1.62");
+        ArrayList<Integer> ind4 = new ArrayList<>();
+        ind4.add(0);
+        listaPytan.add(new Pytanie("Przybliżona wartość liczby π to?", odp4, ind4, false));
+    }
+
+    private void wyswietlPytanie() {
+        containerOdpowiedzi.removeAllViews();
+        aktualneCheckBoxy.clear();
+        aktualnyRadioGroup = null;
+
+        Pytanie p = listaPytan.get(aktualnyIndeksPytania);
+
+        // Numer pytania
+        String numer = "Pytanie " + (aktualnyIndeksPytania + 1) + "/" + listaPytan.size();
+        tekstNumerPytania.setText(numer);
+        tekstTrescPytania.setText(p.getTresc());
+
+        // Zaktualizuj tekst przycisku, jeśli to ostatnie pytanie
+        if (aktualnyIndeksPytania == listaPytan.size() - 1) {
+            przyciskSprawdz.setText("Zakończ quiz");
+        } else {
+            przyciskSprawdz.setText("Sprawdź odpowiedź");
+        }
+
+        // Wypełnij odpowiedzi: jeśli wielokrotny -> CheckBoxy, w przeciwnym wypadku RadioGroup/RadioButtons
+        if (p.isCzyWielokrotny()) {
+            for (int i = 0; i < p.getOdpowiedzi().size(); i++) {
+                CheckBox cb = new CheckBox(this);
+                cb.setText(p.getOdpowiedzi().get(i));
+                cb.setId(View.generateViewId());
+                cb.setTextAppearance(this, R.style.TextAppearance_Material_Body1);
+                containerOdpowiedzi.addView(cb);
+                aktualneCheckBoxy.add(cb);
+            }
+        } else {
+            aktualnyRadioGroup = new RadioGroup(this);
+            aktualnyRadioGroup.setOrientation(RadioGroup.VERTICAL);
+            for (int i = 0; i < p.getOdpowiedzi().size(); i++) {
+                RadioButton rb = new RadioButton(this);
+                rb.setText(p.getOdpowiedzi().get(i));
+                rb.setId(View.generateViewId());
+                rb.setTextAppearance(this, R.style.TextAppearance_Material_Body1);
+                // styl przycisku: padding
+                rb.setPadding(8,16,8,16);
+                aktualnyRadioGroup.addView(rb);
+            }
+            containerOdpowiedzi.addView(aktualnyRadioGroup);
+        }
+
+        tekstWynik.setText("Wynik: " + wynik);
+    }
+
+    private void sprawdzOdpowiedzJednokrotna(Pytanie p) {
+        if (aktualnyRadioGroup == null) {
+            Toast.makeText(this, "Brak odpowiedzi do wyboru.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int zaznaczonyId = aktualnyRadioGroup.getCheckedRadioButtonId();
+        if (zaznaczonyId == -1) {
+            Toast.makeText(this, "Proszę zaznaczyć odpowiedź.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Znajdź indeks zaznaczonego RadioButtona wewnątrz RadioGroup
+        View zaznaczonyView = findViewById(zaznaczonyId);
+        final int indeksWybrany = aktualnyRadioGroup.indexOfChild(zaznaczonyView);
+
+        // Sprawdzenie poprawności
+        int poprawnyIndeks = p.getIndeksyPoprawne().get(0);
+        boolean poprawna = (indeksWybrany == poprawnyIndeks);
+
+        // Wizualna informacja zwrotna: zaznaczony na zielono/czerwono, prawidłowy na zielono
+        RadioButton rbZazn = (RadioButton) zaznaczonyView;
+        if (poprawna) {
+            wynik++;
+            rbZazn.setBackgroundColor(Color.parseColor("#C8E6C9")); // jasna zieleń
+        } else {
+            rbZazn.setBackgroundColor(Color.parseColor("#FFCDD2")); // jasny czerwony
+            // pokaż poprawny
+            View poprawnyView = aktualnyRadioGroup.getChildAt(poprawnyIndeks);
+            if (poprawnyView instanceof RadioButton) {
+                poprawnyView.setBackgroundColor(Color.parseColor("#C8E6C9"));
+            }
+        }
+
+        // Zablokuj możliwość zmiany wyboru
+        for (int i = 0; i < aktualnyRadioGroup.getChildCount(); i++) {
+            View child = aktualnyRadioGroup.getChildAt(i);
+            child.setEnabled(false);
+        }
+
+        tekstWynik.setText("Wynik: " + wynik);
+
+        // Opóźnienie przed przejściem do następnego pytania (dla efektu wizualnego)
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            przejdzDalejLubZakonczy();
+        }, DELAY_MILLIS);
+    }
+
+    private void sprawdzOdpowiedzWielokrotna(Pytanie p) {
+        if (aktualneCheckBoxy.isEmpty()) {
+            Toast.makeText(this, "Brak odpowiedzi do wyboru.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayList<Integer> zaznaczone = new ArrayList<>();
+        for (int i = 0; i < aktualneCheckBoxy.size(); i++) {
+            if (aktualneCheckBoxy.get(i).isChecked()) zaznaczone.add(i);
+        }
+
+        if (zaznaczone.isEmpty()) {
+            Toast.makeText(this, "Proszę zaznaczyć co najmniej jedną odpowiedź.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Porównaj zestawy: poprawne indeksy muszą być dokładnie te zaznaczone (kolejność nieistotna)
+        ArrayList<Integer> poprawne = p.getIndeksyPoprawne();
+        boolean poprawna = zaznaczone.size() == poprawne.size() && zaznaczone.containsAll(poprawne);
+
+        // Wizualna informacja: zaznaczone na zielono jeśli poprawne, czerwone jeśli błędne. Poprawne odpowiedzi na zielono.
+        for (int i = 0; i < aktualneCheckBoxy.size(); i++) {
+            CheckBox cb = aktualneCheckBoxy.get(i);
+            cb.setEnabled(false);
+            if (cb.isChecked()) {
+                if (poprawne.contains(i)) {
+                    cb.setBackgroundColor(Color.parseColor("#C8E6C9"));
+                } else {
+                    cb.setBackgroundColor(Color.parseColor("#FFCDD2"));
+                }
+            } else {
+                if (poprawne.contains(i)) {
+                    // nie zaznaczono, a to była poprawna -> zaznacz na zielono jako wskazówka
+                    cb.setBackgroundColor(Color.parseColor("#C8E6C9"));
+                }
+            }
+        }
+
+        if (poprawna) {
+            wynik++;
+        }
+
+        tekstWynik.setText("Wynik: " + wynik);
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> przejdzDalejLubZakonczy(), DELAY_MILLIS);
+    }
+
+    private void przejdzDalejLubZakonczy() {
+        aktualnyIndeksPytania++;
+        if (aktualnyIndeksPytania < listaPytan.size()) {
+            // wyświetl następne pytanie
+            wyswietlPytanie();
+        } else {
+            wyswietlWynikKoncowy();
+        }
+    }
+
+    private void wyswietlWynikKoncowy() {
+        // Ukryj elementy quizu
+        containerOdpowiedzi.setVisibility(View.GONE);
+        przyciskSprawdz.setVisibility(View.GONE);
+        tekstNumerPytania.setVisibility(View.GONE);
+
+        // Pokaż ekran końcowy
+        ekranKoncowy.setVisibility(View.VISIBLE);
+        String podsumowanie = "Koniec quizu! Twój wynik: " + wynik + " / " + listaPytan.size();
+        tekstKoniec.setText(podsumowanie);
+    }
+
+    private void zresetujGrę() {
+        aktualnyIndeksPytania = 0;
+        wynik = 0;
+
+        // Przywróć widoczne elementy
+        containerOdpowiedzi.setVisibility(View.VISIBLE);
+        przyciskSprawdz.setVisibility(View.VISIBLE);
+        tekstNumerPytania.setVisibility(View.VISIBLE);
+        ekranKoncowy.setVisibility(View.GONE);
+
+        wyswietlPytanie();
+    }
+}
+
+Pytanie.java:
+package com.example.prostyquiz; // <- dopasuj do Twojego pakietu
+
+import java.util.ArrayList;
+
+public class Pytanie {
+    private String tresc;
+    private ArrayList<String> odpowiedzi;
+    // Dla pytań jedno- i wielokrotnego wyboru:
+    // jeśli jest jedno poprawne: indeksyPoprawne.size() == 1
+    private ArrayList<Integer> indeksyPoprawne;
+    private boolean czyWielokrotny;
+
+    public Pytanie(String tresc, ArrayList<String> odpowiedzi, ArrayList<Integer> indeksyPoprawne, boolean czyWielokrotny) {
+        this.tresc = tresc;
+        this.odpowiedzi = odpowiedzi;
+        this.indeksyPoprawne = indeksyPoprawne;
+        this.czyWielokrotny = czyWielokrotny;
+    }
+
+    public String getTresc() { return tresc; }
+    public ArrayList<String> getOdpowiedzi() { return odpowiedzi; }
+    public ArrayList<Integer> getIndeksyPoprawne() { return indeksyPoprawne; }
+    public boolean isCzyWielokrotny() { return czyWielokrotny; }
+}
+
+STYLES:
+<resources>
+    <style name="Quiz.Button">
+        <item name="android:padding">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:layout_margin">4dp</item>
+    </style>
+
+    <style name="Quiz.Question">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Quiz.HeaderSmall">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="Quiz.Result">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">italic</item>
+    </style>
+</resources>
+
+COLORS:
+<resources>
+    <color name="primary">#0D47A1</color>
+    <color name="onPrimary">#FFFFFF</color>
+    <color name="background">#FFFFFF</color>
+    <color name="card">#FAFAFA</color>
+</resources>
+
+
+
+
